@@ -1,9 +1,9 @@
 let modInfo = {
-	name: "The ??? Tree",
+	name: "The Incrementali Tree",
 	id: "mymod",
 	author: "nobody",
 	pointsName: "points",
-	modFiles: ["layers.js", "tree.js"],
+	modFiles: ["layers.js", "layers/row1.js", "layers/row2.js", "layers/row3.js", "tree.js"],
 
 	discordName: "",
 	discordLink: "",
@@ -13,14 +13,11 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.0",
-	name: "Literally nothing",
+	num: "0.2",
+	name: "The Ascension Upgrade",
 }
 
-let changelog = `<h1>Changelog:</h1><br>
-	<h3>v0.0</h3><br>
-		- Added things.<br>
-		- Added stuff.`
+let changelog = ``
 
 let winText = `Congratulations! You have reached the end and beaten this game, but for now...`
 
@@ -37,12 +34,45 @@ function canGenPoints(){
 	return true
 }
 
+function getIncrementaliEff() {
+  let eff = new Decimal(2)
+  if (hasUpgrade("p", 11)) eff = eff.mul(1.1)
+  if (hasUpgrade("p", 12)) eff = eff.mul(1.1)
+  if (hasUpgrade("p", 23)) eff = eff.mul(1.15)
+  if (hasUpgrade("s", 11)) eff = eff.mul(1.02)
+  if (hasUpgrade("t", 12)) eff = eff.mul(1.1)
+  if (player.q.unlocked) eff = eff.mul(buyableEffect("q", 11))
+  if (player.i.unlocked) eff = eff.mul(layers.i.effect().incrementBuff)
+  if (player.i.unlocked) eff = eff.mul(buyableEffect("i", 11))
+  if (!inChallenge("e", 12) && player.sh.unlocked) eff = eff.mul(buyableEffect("sh", 32))
+  if (inChallenge("e", 11)) eff = eff.div(25)
+  return eff
+}
+
+function getIncrementaliSelfBoost() {
+  let boost = player.points.add(3).log10().add(1).pow(getIncrementaliEff()).sub(1)
+  if (boost.gt(1e6)) boost = boost.sqrt().mul(1e3)
+  return boost
+}
+
 // Calculate points/sec!
 function getPointGen() {
 	if(!canGenPoints())
 		return new Decimal(0)
 
-	let gain = new Decimal(1)
+	let gain = new Decimal(0.01)
+  gain = gain.mul(getIncrementaliSelfBoost())
+  if (hasUpgrade("p", 13)) gain = gain.mul(2)
+  if (hasUpgrade("p", 21)) gain = gain.mul(upgradeEffect("p", 21))
+  if (hasUpgrade("p", 22)) gain = gain.mul(3)
+  if (hasUpgrade("p", 32)) gain = gain.mul(4)
+  if (hasUpgrade("t", 11)) gain = gain.mul(upgradeEffect("t", 11))
+  if (player.s.unlocked) gain = gain.mul(layers.s.singularityPowerBoost())
+  if (player.i.unlocked) gain = gain.mul(layers.i.effect().incrementMult)
+  if (player.c.unlocked) gain = gain.mul(buyableEffect("c", 11))
+  if (!inChallenge("e", 12) && player.sh.unlocked) gain = gain.mul(buyableEffect("sh", 22))
+  if (inChallenge("e", 21)) gain = gain.tetrate(1/12)
+  if (hasChallenge("e", 21)) gain = gain.mul(layers.e.challenges[21].rewardEffect())
 	return gain
 }
 
@@ -52,6 +82,8 @@ function addedPlayerData() { return {
 
 // Display extra things at the top of the page
 var displayThings = [
+  function() {return `Incrementali self-boost is ${format(getIncrementaliSelfBoost())}x`},
+  function() {return `Self-boost base formula is log10(incrementali+3)^${format(getIncrementaliEff())}`}
 ]
 
 // Determines when the game "ends"
